@@ -7,7 +7,6 @@ from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional, Union
 
 
-from Auth import get_calendar_credentials
 
 
 @dataclass(frozen=True)
@@ -44,6 +43,8 @@ class GoogleCalendarAdapter:
     def service(self) -> Any:
         if self._service is None:
             from googleapiclient.discovery import build
+
+            from Auth import get_calendar_credentials
 
             credentials = get_calendar_credentials()
             self._service = build("calendar", "v3", credentials=credentials)
