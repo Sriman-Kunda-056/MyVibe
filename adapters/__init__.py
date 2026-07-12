@@ -1,5 +1,24 @@
 """External service adapters for VibeOS."""
 
+from .gmail import GmailAdapter, GmailMessage
 from .google_calendar import CalendarEvent, GoogleCalendarAdapter
+from .google_tasks import GoogleTasksAdapter, TaskItem, TaskList
+from .local_files import FileEntry, LocalFilesAdapter
+from .local_notes import LocalNotesAdapter, Note
+from .registry import AdapterRegistry, default_registry
 
-__all__ = ["CalendarEvent", "GoogleCalendarAdapter"]
+__all__ = [
+    "AdapterRegistry",
+    "CalendarEvent",
+    "FileEntry",
+    "GmailAdapter",
+    "GmailMessage",
+    "GoogleCalendarAdapter",
+    "GoogleTasksAdapter",
+    "LocalFilesAdapter",
+    "LocalNotesAdapter",
+    "Note",
+    "TaskItem",
+    "TaskList",
+    "default_registry",
+]

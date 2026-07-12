@@ -7,6 +7,8 @@ venv/
 *.log
 .DS_Store
 .vscode/
-.env
-credentials.json 
+credentials.json
 token.json
+gmail_token.json
+tasks_token.json
+.test_tmp/
