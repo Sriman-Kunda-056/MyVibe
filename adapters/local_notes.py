@@ -36,7 +36,11 @@ class LocalNotesAdapter:
         note_id = _slugify(title)
         path = self._path_for(note_id)
         body = _note_body(title, content)
-        path.write_text(body, encoding="utf-8")
+        try:
+            with path.open("x", encoding="utf-8") as note_file:
+                note_file.write(body)
+        except FileExistsError as exc:
+            raise FileExistsError(f"Note already exists: {note_id}") from exc
         return self.read_note(note_id)
 
     def read_note(self, note_id: str) -> Note:
