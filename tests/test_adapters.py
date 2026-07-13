@@ -3,6 +3,7 @@
 import unittest
 import uuid
 from pathlib import Path
+from unittest.mock import MagicMock
 
 from Auth import GMAIL_SCOPES
 from adapters import (
@@ -61,6 +62,42 @@ class AdapterParsingTest(unittest.TestCase):
         self.assertEqual("task_1", task.task_id)
         self.assertEqual("Ship adapter layer", task.title)
         self.assertEqual("needsAction", task.status)
+
+    def test_google_tasks_forwards_completed_visibility_flags(self):
+        service = MagicMock()
+        service.tasks.return_value.list.return_value.execute.return_value = {
+            "items": []
+        }
+        adapter = GoogleTasksAdapter(service=service)
+
+        adapter.list_tasks(
+            show_completed=True,
+            show_hidden=True,
+            max_results=10,
+        )
+
+        service.tasks.return_value.list.assert_called_once_with(
+            tasklist="@default",
+            showCompleted=True,
+            showHidden=True,
+            maxResults=10,
+        )
+
+    def test_google_tasks_preserves_positional_max_results(self):
+        service = MagicMock()
+        service.tasks.return_value.list.return_value.execute.return_value = {
+            "items": []
+        }
+        adapter = GoogleTasksAdapter(service=service)
+
+        adapter.list_tasks(None, False, 10)
+
+        service.tasks.return_value.list.assert_called_once_with(
+            tasklist="@default",
+            showCompleted=False,
+            showHidden=False,
+            maxResults=10,
+        )
 
 
 class LocalAdapterTest(unittest.TestCase):

@@ -38,6 +38,12 @@ class IntentTaskRoutingTest(unittest.TestCase):
         intent = route_intent("show completed tasks")
 
         self.assertEqual("tasks.list", intent.name)
+        self.assertEqual("completed", intent.slots["status"])
+
+    def test_pending_tasks_override_all_tasks(self):
+        intent = route_intent("show all pending tasks")
+
+        self.assertEqual("pending", intent.slots["status"])
 
     def test_routes_task_delete_request(self):
         intent = route_intent("delete task 42")

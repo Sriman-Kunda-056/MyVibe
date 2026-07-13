@@ -13,6 +13,7 @@ it later.
 - `LocalNotesAdapter`: create, read, append, list, and search markdown notes.
 - `LocalFilesAdapter`: list, read, and write files inside a configured root.
 - `AdapterRegistry`: creates adapters by name: `calendar`, `gmail`, `tasks`, `notes`, `files`.
+- `TaskActionRunner`: executes list, create, complete, and delete task intents.
 
 ## Example
 
@@ -24,6 +25,20 @@ from intent_router import route_intent
 intent = route_intent("show my next calendar events")
 calendar = default_registry().create("calendar")
 result = CalendarActionRunner(calendar).run(intent)
+
+print(result.message)
+```
+
+Task requests use the same registry and intent model:
+
+```python
+from adapters import default_registry
+from intent_router import route_intent
+from task_actions import TaskActionRunner
+
+intent = route_intent("show my pending tasks")
+tasks = default_registry().create("tasks")
+result = TaskActionRunner(tasks).run(intent)
 
 print(result.message)
 ```

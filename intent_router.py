@@ -71,7 +71,14 @@ class IntentRouter:
             return VibeIntent("tasks.create", 0.8, original)
 
         if self._has_any(normalized, ("show", "list", "what")):
-            return VibeIntent("tasks.list", 0.8, original)
+            status = "pending"
+            if self._has_any(normalized, ("completed", "done")):
+                status = "completed"
+            elif self._has_any(normalized, ("all",)):
+                status = "all"
+            if self._has_any(normalized, ("pending",)):
+                status = "pending"
+            return VibeIntent("tasks.list", 0.8, original, {"status": status})
 
         if self._has_any(normalized, ("mark", "complete", "finish", "done")):
             return VibeIntent("tasks.complete", 0.8, original)

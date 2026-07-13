@@ -74,12 +74,14 @@ class GoogleTasksAdapter:
         tasklist_id: Optional[str] = None,
         show_completed: bool = False,
         max_results: int = 20,
+        show_hidden: bool = False,
     ) -> List[TaskItem]:
         response = (
             self.service.tasks()
             .list(
                 tasklist=tasklist_id or self.tasklist_id,
                 showCompleted=show_completed,
+                showHidden=show_hidden,
                 maxResults=max_results,
             )
             .execute()
