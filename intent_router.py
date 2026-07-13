@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, Optional
 
@@ -28,7 +29,24 @@ class IntentRouter:
         if not normalized:
             return self._unknown(text)
 
-        if self._has_any(normalized, ("calendar", "meeting", "schedule", "event")):
+        if self._has_any(
+            normalized,
+            ("task", "tasks", "todo", "todos", "to-do", "to-dos"),
+        ):
+            return self._task_intent(text, normalized)
+
+        if self._has_any(
+            normalized,
+            (
+                "calendar",
+                "calendars",
+                "meeting",
+                "meetings",
+                "schedule",
+                "event",
+                "events",
+            ),
+        ):
             return self._calendar_intent(text, normalized)
 
         return self._unknown(text)
@@ -45,12 +63,33 @@ class IntentRouter:
 
         return VibeIntent("calendar.list_upcoming", 0.55, original)
 
+    def _task_intent(self, original: str, normalized: str) -> VibeIntent:
+        if self._has_any(normalized, ("delete", "remove")):
+            return VibeIntent("tasks.delete", 0.75, original)
+
+        if self._has_any(normalized, ("create", "add", "new", "schedule")):
+            return VibeIntent("tasks.create", 0.8, original)
+
+        if self._has_any(normalized, ("show", "list", "what")):
+            return VibeIntent("tasks.list", 0.8, original)
+
+        if self._has_any(normalized, ("mark", "complete", "finish", "done")):
+            return VibeIntent("tasks.complete", 0.8, original)
+
+        if self._has_any(normalized, ("next", "pending")):
+            return VibeIntent("tasks.list", 0.8, original)
+
+        return VibeIntent("tasks.list", 0.55, original)
+
     def _unknown(self, text: str) -> VibeIntent:
         return VibeIntent("unknown", 0.0, text)
 
     @staticmethod
     def _has_any(text: str, words: Iterable[str]) -> bool:
-        return any(word in text for word in words)
+        return any(
+            re.search(rf"(?<!\w){re.escape(word)}(?!\w)", text)
+            for word in words
+        )
 
 
 def route_intent(text: str, router: Optional[IntentRouter] = None) -> VibeIntent:
