@@ -11,7 +11,7 @@ it later.
 ![Tests](https://img.shields.io/badge/test_modules-4-2ea44f)
 ![Status](https://img.shields.io/badge/status-foundation-f59e0b)
 
-## Project snapshot
+## Evidence at a glance
 
 | Verified from the repository | Count |
 | --- | ---: |
@@ -21,7 +21,12 @@ it later.
 | Unit-test modules | **4** |
 | Python source files | **15** |
 
-## Architecture preview
+## Preview
+
+This repository is an automation foundation rather than a finished graphical
+application. Its reviewed preview is therefore the implemented adapter flow.
+
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -41,7 +46,7 @@ flowchart LR
 > is not yet an LLM planner and does not extract every field needed for arbitrary
 > create/delete requests.
 
-## Adapters
+## What it does
 
 - `GoogleCalendarAdapter`: list, create, and delete calendar events.
 - `GmailAdapter`: list recent messages, read message metadata, and send email.
@@ -79,11 +84,14 @@ result = TaskActionRunner(tasks).run(intent)
 print(result.message)
 ```
 
-## Google Setup
+## Quick start
 
 Install dependencies:
 
 ```bash
+git clone https://github.com/Sriman-Kunda-056/MyVibe.git
+cd MyVibe
+python -m venv .venv
 pip install -r requirements.txt
 ```
 
@@ -94,8 +102,49 @@ separate token files so scope changes do not break the other adapters.
 The Google scopes include calendar/task mutation and Gmail read/send access.
 Use a dedicated test account while developing and never commit OAuth tokens.
 
-## Tests
+## Tests and validation
 
 ```bash
 python -m unittest discover -s tests
 ```
+
+The four tracked test modules cover the current router and adapter foundations.
+They do not validate live Google accounts or arbitrary natural-language slot
+extraction.
+
+## Repository layout
+
+```text
+MyVibe/
+|-- adapters/              # Calendar, Gmail, Tasks, notes, and files
+|-- intent_router.py       # Rule-based intent classification
+|-- calendar_actions.py    # Calendar action runner
+|-- task_actions.py        # Task action runner
+|-- Auth.py                # Google OAuth helper
+|-- tests/                 # Unit-test modules
+`-- requirements.txt
+```
+
+## Limitations
+
+- Routing is rule-based and does not yet provide a general planning loop.
+- Not every create, update, or delete intent has complete field extraction.
+- Live Google integrations require broad read/write OAuth scopes and should be
+  developed with a dedicated test account.
+- Local file access is only safe when its configured root remains constrained.
+
+## Numbered commit history
+
+1. `Initial` - import the adapter and action-runner foundation.
+2. `01` - document verified adapters, intents, tests, and architecture.
+3. `02` - standardize the evidence-first GitHub README format.
+
+## Suggested GitHub topics
+
+`python` `automation` `productivity` `intent-routing` `oauth2`
+`google-calendar-api` `gmail-api` `google-tasks-api`
+
+## License and attribution
+
+No repository-wide license file is included. Google product and API names are
+used to identify optional integrations and do not imply endorsement.
