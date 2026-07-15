@@ -55,7 +55,8 @@ class LocalNotesAdapter:
 
     def append_note(self, note_id: str, content: str) -> Note:
         path = self._path_for(note_id)
-        with path.open("a", encoding="utf-8") as note_file:
+        with path.open("r+", encoding="utf-8") as note_file:
+            note_file.seek(0, 2)
             note_file.write("\n")
             note_file.write(content)
             note_file.write("\n")

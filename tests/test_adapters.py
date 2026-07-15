@@ -116,6 +116,15 @@ class LocalAdapterTest(unittest.TestCase):
         self.assertIn("Add tests", updated.content)
         self.assertEqual([note.note_id], [match.note_id for match in matches])
 
+    def test_local_notes_rejects_append_to_missing_note(self):
+        adapter = LocalNotesAdapter(self.root / "notes")
+        adapter.create_note("Seed note", "Keep this note")
+
+        with self.assertRaises(FileNotFoundError):
+            adapter.append_note("missing-note", "Do not create this file")
+
+        self.assertFalse((self.root / "notes" / "missing-note.md").exists())
+
     def test_local_notes_rejects_slug_collisions_without_overwriting(self):
         adapter = LocalNotesAdapter(self.root / "notes")
         note = adapter.create_note("Daily Plan", "Original content")
