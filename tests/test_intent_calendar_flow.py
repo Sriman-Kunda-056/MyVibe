@@ -76,6 +76,21 @@ class IntentCalendarFlowTest(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertEqual(["evt_1"], adapter.deleted)
 
+    def test_delete_event_rejects_low_confidence_intent(self):
+        adapter = FakeCalendarAdapter()
+        result = CalendarActionRunner(adapter).run(
+            VibeIntent(
+                "calendar.delete_event",
+                0.0,
+                "maybe delete my event",
+                {"event_id": "evt_1"},
+            )
+        )
+
+        self.assertFalse(result.ok)
+        self.assertIn("not actionable", result.message)
+        self.assertEqual([], adapter.deleted)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -25,6 +25,9 @@ class CalendarActionRunner:
         self.adapter = adapter or GoogleCalendarAdapter()
 
     def run(self, intent: VibeIntent) -> CalendarActionResult:
+        if not intent.is_actionable:
+            return CalendarActionResult(False, "Calendar intent is not actionable.")
+
         if intent.name == "calendar.list_upcoming":
             return self._list_upcoming()
 
