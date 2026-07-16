@@ -26,6 +26,7 @@ class IntentTaskRoutingTest(unittest.TestCase):
         intent = route_intent("mark task 42 as done")
 
         self.assertEqual("tasks.complete", intent.name)
+        self.assertEqual("42", intent.slots["task_id"])
 
     def test_completion_verbs_override_task_position_words(self):
         next_task = route_intent("complete my next task")
@@ -49,6 +50,7 @@ class IntentTaskRoutingTest(unittest.TestCase):
         intent = route_intent("delete task 42")
 
         self.assertEqual("tasks.delete", intent.name)
+        self.assertEqual("42", intent.slots["task_id"])
 
     def test_ignores_task_substrings(self):
         multitasking = route_intent("multitasking helps me focus")

@@ -65,7 +65,8 @@ class IntentRouter:
 
     def _task_intent(self, original: str, normalized: str) -> VibeIntent:
         if self._has_any(normalized, ("delete", "remove")):
-            return VibeIntent("tasks.delete", 0.75, original)
+            slots = self._task_id_slots(normalized)
+            return VibeIntent("tasks.delete", 0.75, original, slots)
 
         if self._has_any(normalized, ("create", "add", "new", "schedule")):
             return VibeIntent("tasks.create", 0.8, original)
@@ -81,7 +82,8 @@ class IntentRouter:
             return VibeIntent("tasks.list", 0.8, original, {"status": status})
 
         if self._has_any(normalized, ("mark", "complete", "finish", "done")):
-            return VibeIntent("tasks.complete", 0.8, original)
+            slots = self._task_id_slots(normalized)
+            return VibeIntent("tasks.complete", 0.8, original, slots)
 
         if self._has_any(normalized, ("next", "pending")):
             return VibeIntent("tasks.list", 0.8, original)
@@ -97,6 +99,16 @@ class IntentRouter:
             re.search(rf"(?<!\w){re.escape(word)}(?!\w)", text)
             for word in words
         )
+
+    @staticmethod
+    def _task_id_slots(text: str) -> Dict[str, str]:
+        match = re.search(
+            r"(?<!\w)(?:task|tasks|todo|todos|to-do|to-dos)\s+(?:id\s+)?([a-z0-9][\w-]*)",
+            text,
+        )
+        if not match:
+            return {}
+        return {"task_id": match.group(1)}
 
 
 def route_intent(text: str, router: Optional[IntentRouter] = None) -> VibeIntent:
