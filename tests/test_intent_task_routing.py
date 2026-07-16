@@ -16,6 +16,13 @@ class IntentTaskRoutingTest(unittest.TestCase):
         intent = route_intent("add a task for the project review")
 
         self.assertEqual("tasks.create", intent.name)
+        self.assertEqual("the project review", intent.slots["title"])
+
+    def test_routes_named_task_create_request(self):
+        intent = route_intent("create task called Ship adapters")
+
+        self.assertEqual("tasks.create", intent.name)
+        self.assertEqual("Ship adapters", intent.slots["title"])
 
     def test_routes_scheduled_task_before_calendar_keywords(self):
         intent = route_intent("schedule a task for tomorrow")

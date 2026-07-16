@@ -69,7 +69,8 @@ class IntentRouter:
             return VibeIntent("tasks.delete", 0.75, original, slots)
 
         if self._has_any(normalized, ("create", "add", "new", "schedule")):
-            return VibeIntent("tasks.create", 0.8, original)
+            slots = self._task_title_slots(original)
+            return VibeIntent("tasks.create", 0.8, original, slots)
 
         if self._has_any(normalized, ("show", "list", "what")):
             status = "pending"
@@ -109,6 +110,20 @@ class IntentRouter:
         if not match:
             return {}
         return {"task_id": match.group(1)}
+
+    @staticmethod
+    def _task_title_slots(text: str) -> Dict[str, str]:
+        normalized = " ".join(text.strip().split())
+        for pattern in (
+            r"(?i)\b(?:create|add|new)\s+(?:a\s+)?(?:task|todo|to-do)\s+(?:called|named|titled|for|to)\s+(.+)$",
+            r"(?i)\b(?:create|add|new)\s+(?:a\s+)?(?:task|todo|to-do)\s+(.+)$",
+        ):
+            match = re.search(pattern, normalized)
+            if match:
+                title = match.group(1).strip(" .?!")
+                if title:
+                    return {"title": title}
+        return {}
 
 
 def route_intent(text: str, router: Optional[IntentRouter] = None) -> VibeIntent:
