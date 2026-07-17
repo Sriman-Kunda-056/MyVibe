@@ -166,6 +166,15 @@ class LocalAdapterTest(unittest.TestCase):
         self.assertIn("Original content", preserved.content)
         self.assertNotIn("Replacement content", preserved.content)
 
+    def test_local_files_returns_posix_relative_paths(self):
+        adapter = LocalFilesAdapter(self.root / "workspace")
+
+        written = adapter.write_text("plans/today.txt", "Build adapters")
+        entries = adapter.list_entries("plans")
+
+        self.assertEqual("plans/today.txt", written.relative_path)
+        self.assertEqual(["plans/today.txt"], [entry.relative_path for entry in entries])
+
     def test_local_files_stays_inside_root(self):
         adapter = LocalFilesAdapter(self.root / "workspace")
 

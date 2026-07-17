@@ -28,7 +28,7 @@ class LocalFilesAdapter:
             return []
         return [
             FileEntry(
-                relative_path=str(path.relative_to(self.root.resolve())),
+                relative_path=self._relative_path(path),
                 size=0 if path.is_dir() else path.stat().st_size,
                 is_dir=path.is_dir(),
             )
@@ -42,7 +42,10 @@ class LocalFilesAdapter:
         path = self._resolve(relative_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
-        return FileEntry(str(path.relative_to(self.root.resolve())), path.stat().st_size, False)
+        return FileEntry(self._relative_path(path), path.stat().st_size, False)
+
+    def _relative_path(self, path: Path) -> str:
+        return path.relative_to(self.root.resolve()).as_posix()
 
     def _resolve(self, relative_path: str) -> Path:
         self.root.mkdir(parents=True, exist_ok=True)
