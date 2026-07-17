@@ -54,10 +54,14 @@ class GmailAdapter:
         max_results: int = 10,
         query: Optional[str] = None,
     ) -> List[GmailMessage]:
+        request_args = {"userId": self.user_id, "maxResults": max_results}
+        if query:
+            request_args["q"] = query
+
         response = (
             self.service.users()
             .messages()
-            .list(userId=self.user_id, maxResults=max_results, q=query)
+            .list(**request_args)
             .execute()
         )
         messages = response.get("messages", [])

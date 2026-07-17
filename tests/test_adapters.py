@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 from Auth import GMAIL_SCOPES
 from adapters import (
+    GmailAdapter,
     GmailMessage,
     GoogleTasksAdapter,
     LocalFilesAdapter,
@@ -48,6 +49,35 @@ class AdapterParsingTest(unittest.TestCase):
         self.assertEqual("msg_1", message.message_id)
         self.assertEqual("Launch notes", message.subject)
         self.assertEqual("sam@example.com", message.sender)
+
+    def test_gmail_list_omits_empty_query(self):
+        service = MagicMock()
+        service.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+            "messages": []
+        }
+        adapter = GmailAdapter(service=service)
+
+        adapter.list_recent_messages()
+
+        service.users.return_value.messages.return_value.list.assert_called_once_with(
+            userId="me",
+            maxResults=10,
+        )
+
+    def test_gmail_list_includes_non_empty_query(self):
+        service = MagicMock()
+        service.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+            "messages": []
+        }
+        adapter = GmailAdapter(service=service)
+
+        adapter.list_recent_messages(max_results=5, query="from:sam@example.com")
+
+        service.users.return_value.messages.return_value.list.assert_called_once_with(
+            userId="me",
+            maxResults=5,
+            q="from:sam@example.com",
+        )
 
     def test_task_item_from_google_payload(self):
         task = TaskItem.from_google_task(
