@@ -175,6 +175,15 @@ class LocalAdapterTest(unittest.TestCase):
         self.assertEqual("plans/today.txt", written.relative_path)
         self.assertEqual(["plans/today.txt"], [entry.relative_path for entry in entries])
 
+    def test_local_files_rejects_absolute_paths(self):
+        adapter = LocalFilesAdapter(self.root / "workspace")
+        absolute_path = (self.root / "workspace" / "inside.txt").resolve()
+
+        with self.assertRaisesRegex(ValueError, "relative"):
+            adapter.write_text(str(absolute_path), "Must stay relative")
+
+        self.assertFalse(absolute_path.exists())
+
     def test_local_files_stays_inside_root(self):
         adapter = LocalFilesAdapter(self.root / "workspace")
 

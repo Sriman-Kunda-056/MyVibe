@@ -48,9 +48,13 @@ class LocalFilesAdapter:
         return path.relative_to(self.root.resolve()).as_posix()
 
     def _resolve(self, relative_path: str) -> Path:
+        requested = Path(relative_path)
+        if requested.is_absolute():
+            raise ValueError(f"Path must be relative: {relative_path}")
+
         self.root.mkdir(parents=True, exist_ok=True)
         root = self.root.resolve()
-        path = (root / relative_path).resolve()
+        path = (root / requested).resolve()
         if root != path and root not in path.parents:
             raise ValueError(f"Path escapes adapter root: {relative_path}")
         return path
