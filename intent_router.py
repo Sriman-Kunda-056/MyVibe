@@ -53,7 +53,8 @@ class IntentRouter:
 
     def _calendar_intent(self, original: str, normalized: str) -> VibeIntent:
         if self._has_any(normalized, ("delete", "remove", "cancel")):
-            return VibeIntent("calendar.delete_event", 0.75, original)
+            slots = self._calendar_event_id_slots(normalized)
+            return VibeIntent("calendar.delete_event", 0.75, original, slots)
 
         if self._has_any(normalized, ("create", "add", "book", "schedule")):
             return VibeIntent("calendar.create_event", 0.8, original)
@@ -100,6 +101,16 @@ class IntentRouter:
             re.search(rf"(?<!\w){re.escape(word)}(?!\w)", text)
             for word in words
         )
+
+    @staticmethod
+    def _calendar_event_id_slots(text: str) -> Dict[str, str]:
+        match = re.search(
+            r"(?<!\w)(?:calendar\s+)?event\s+(?:id\s+)?([a-z0-9][\w-]*)",
+            text,
+        )
+        if not match:
+            return {}
+        return {"event_id": match.group(1)}
 
     @staticmethod
     def _task_id_slots(text: str) -> Dict[str, str]:

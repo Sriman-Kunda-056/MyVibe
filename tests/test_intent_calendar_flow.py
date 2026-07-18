@@ -62,6 +62,16 @@ class IntentCalendarFlowTest(unittest.TestCase):
         self.assertIn("start", result.message)
         self.assertIn("end", result.message)
 
+    def test_routed_delete_event_uses_extracted_id(self):
+        adapter = FakeCalendarAdapter()
+        intent = route_intent("delete event evt_1")
+
+        result = CalendarActionRunner(adapter).run(intent)
+
+        self.assertTrue(result.ok)
+        self.assertEqual("evt_1", intent.slots["event_id"])
+        self.assertEqual(["evt_1"], adapter.deleted)
+
     def test_delete_event_uses_adapter(self):
         adapter = FakeCalendarAdapter()
         result = CalendarActionRunner(adapter).run(
