@@ -48,6 +48,9 @@ class LocalFilesAdapter:
         return path.relative_to(self.root.resolve()).as_posix()
 
     def _resolve(self, relative_path: str) -> Path:
+        if not str(relative_path).strip():
+            raise ValueError("Path must not be empty.")
+
         requested = Path(relative_path)
         if requested.is_absolute():
             raise ValueError(f"Path must be relative: {relative_path}")

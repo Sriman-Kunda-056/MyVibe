@@ -183,6 +183,14 @@ class LocalAdapterTest(unittest.TestCase):
         self.assertEqual("plans/today.txt", written.relative_path)
         self.assertEqual(["plans/today.txt"], [entry.relative_path for entry in entries])
 
+    def test_local_files_rejects_empty_paths(self):
+        adapter = LocalFilesAdapter(self.root / "workspace")
+
+        with self.assertRaisesRegex(ValueError, "empty"):
+            adapter.write_text("   ", "No path")
+
+        self.assertFalse((self.root / "workspace").exists())
+
     def test_local_files_rejects_absolute_paths(self):
         adapter = LocalFilesAdapter(self.root / "workspace")
         absolute_path = (self.root / "workspace" / "inside.txt").resolve()
