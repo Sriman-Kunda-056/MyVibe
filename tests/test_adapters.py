@@ -146,6 +146,14 @@ class LocalAdapterTest(unittest.TestCase):
         self.assertIn("Add tests", updated.content)
         self.assertEqual([note.note_id], [match.note_id for match in matches])
 
+    def test_local_notes_rejects_blank_titles(self):
+        adapter = LocalNotesAdapter(self.root / "notes")
+
+        with self.assertRaisesRegex(ValueError, "title"):
+            adapter.create_note("   ", "No title")
+
+        self.assertFalse((self.root / "notes").exists())
+
     def test_local_notes_rejects_append_to_missing_note(self):
         adapter = LocalNotesAdapter(self.root / "notes")
         adapter.create_note("Seed note", "Keep this note")

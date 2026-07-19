@@ -32,6 +32,10 @@ class LocalNotesAdapter:
         return [self.read_note(path.stem) for path in sorted(self.root.glob("*.md"))]
 
     def create_note(self, title: str, content: str = "") -> Note:
+        title = title.strip()
+        if not title:
+            raise ValueError("Note title must not be empty.")
+
         self.root.mkdir(parents=True, exist_ok=True)
         note_id = _slugify(title)
         path = self._path_for(note_id)
