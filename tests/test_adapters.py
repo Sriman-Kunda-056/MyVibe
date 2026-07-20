@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from Auth import GMAIL_SCOPES
+from adapters.local_tasks import LocalTasksAdapter
 from adapters import (
     GmailAdapter,
     GmailMessage,
@@ -189,6 +190,39 @@ class LocalAdapterTest(unittest.TestCase):
         preserved = adapter.read_note(note.note_id)
         self.assertIn("Original content", preserved.content)
         self.assertNotIn("Replacement content", preserved.content)
+
+    def test_local_tasks_create_complete_delete_flow(self):
+        adapter = LocalTasksAdapter(self.root / "tasks")
+
+        task = adapter.create_task(
+            "Review adapter design",
+            notes="Focus on local parity",
+            due="2026-07-21T00:00:00Z",
+        )
+        pending_tasks = adapter.list_tasks()
+        completed = adapter.complete_task(task.task_id)
+        reloaded = LocalTasksAdapter(self.root / "tasks")
+
+        self.assertTrue(task.task_id.startswith("local-"))
+        self.assertEqual([task.task_id], [item.task_id for item in pending_tasks])
+        self.assertEqual("completed", completed.status)
+        self.assertEqual([], adapter.list_tasks())
+        self.assertEqual(
+            [task.task_id],
+            [item.task_id for item in reloaded.list_tasks(show_completed=True)],
+        )
+
+        adapter.delete_task(task.task_id)
+
+        self.assertEqual([], adapter.list_tasks(show_completed=True))
+
+    def test_local_tasks_rejects_blank_titles(self):
+        adapter = LocalTasksAdapter(self.root / "tasks")
+
+        with self.assertRaisesRegex(ValueError, "title"):
+            adapter.create_task("   ")
+
+        self.assertFalse((self.root / "tasks").exists())
 
     def test_local_files_returns_posix_relative_paths(self):
         adapter = LocalFilesAdapter(self.root / "workspace")
