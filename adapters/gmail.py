@@ -89,8 +89,12 @@ class GmailAdapter:
         cc: Optional[str] = None,
         bcc: Optional[str] = None,
     ) -> str:
+        recipient = to.strip()
+        if not recipient:
+            raise ValueError("Email recipient must not be empty.")
+
         message = MimeEmailMessage()
-        message["To"] = to
+        message["To"] = recipient
         message["Subject"] = subject
         if cc:
             message["Cc"] = cc

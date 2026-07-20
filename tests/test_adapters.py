@@ -79,6 +79,15 @@ class AdapterParsingTest(unittest.TestCase):
             q="from:sam@example.com",
         )
 
+    def test_gmail_send_rejects_blank_recipient(self):
+        service = MagicMock()
+        adapter = GmailAdapter(service=service)
+
+        with self.assertRaisesRegex(ValueError, "recipient"):
+            adapter.send_email("   ", "Launch notes", "Body")
+
+        service.users.assert_not_called()
+
     def test_task_item_from_google_payload(self):
         task = TaskItem.from_google_task(
             {
