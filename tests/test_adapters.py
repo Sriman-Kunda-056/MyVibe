@@ -146,6 +146,13 @@ class LocalAdapterTest(unittest.TestCase):
         self.assertIn("Add tests", updated.content)
         self.assertEqual([note.note_id], [match.note_id for match in matches])
 
+    def test_local_notes_rejects_blank_search_queries(self):
+        adapter = LocalNotesAdapter(self.root / "notes")
+        adapter.create_note("Daily Plan", "Build VibeOS adapters")
+
+        with self.assertRaisesRegex(ValueError, "query"):
+            adapter.find_notes("   ")
+
     def test_local_notes_rejects_blank_titles(self):
         adapter = LocalNotesAdapter(self.root / "notes")
 

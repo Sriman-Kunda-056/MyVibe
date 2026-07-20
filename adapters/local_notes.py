@@ -67,7 +67,9 @@ class LocalNotesAdapter:
         return self.read_note(note_id)
 
     def find_notes(self, query: str) -> List[Note]:
-        normalized = query.lower()
+        normalized = query.strip().lower()
+        if not normalized:
+            raise ValueError("Note search query must not be empty.")
         return [
             note
             for note in self.list_notes()
