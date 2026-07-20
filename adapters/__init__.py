@@ -5,6 +5,7 @@ from .google_calendar import CalendarEvent, GoogleCalendarAdapter
 from .google_tasks import GoogleTasksAdapter, TaskItem, TaskList
 from .local_files import FileEntry, LocalFilesAdapter
 from .local_notes import LocalNotesAdapter, Note
+from .local_tasks import LocalTasksAdapter
 from .registry import AdapterRegistry, default_registry
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "GoogleTasksAdapter",
     "LocalFilesAdapter",
     "LocalNotesAdapter",
+    "LocalTasksAdapter",
     "Note",
     "TaskItem",
     "TaskList",

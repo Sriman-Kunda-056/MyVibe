@@ -5,7 +5,7 @@ across external tools. The current build focuses on adapter foundations: each
 adapter normalizes a tool behind a small Python interface so a planner can call
 it later.
 
-![Adapters](https://img.shields.io/badge/service_adapters-5-2563eb)
+![Adapters](https://img.shields.io/badge/service_adapters-6-2563eb)
 ![Intents](https://img.shields.io/badge/actionable_intents-7-7c3aed)
 ![Google APIs](https://img.shields.io/badge/Google_APIs-3-0ea5e9)
 ![Tests](https://img.shields.io/badge/test_modules-4-2ea44f)
@@ -15,11 +15,11 @@ it later.
 
 | Verified from the repository | Count |
 | --- | ---: |
-| Normalized service adapters | **5** |
+| Normalized service adapters | **6** |
 | Calendar and task intents | **7** |
 | Google API integrations | **3** |
 | Unit-test modules | **4** |
-| Python source files | **15** |
+| Python source files | **16** |
 
 ## Preview
 
@@ -40,6 +40,7 @@ flowchart LR
     AR --> G3["Google Tasks"]
     AR --> L1["Local notes"]
     AR --> L2["Sandboxed local files"]
+    AR --> L3["Local tasks"]
 ```
 
 > **Current scope:** routing is rule-based. It recognizes supported actions but
@@ -51,9 +52,10 @@ flowchart LR
 - `GoogleCalendarAdapter`: list, create, and delete calendar events.
 - `GmailAdapter`: list recent messages, read message metadata, and send email.
 - `GoogleTasksAdapter`: list task lists, list tasks, create tasks, complete tasks, and delete tasks.
+- `LocalTasksAdapter`: persist tasks locally for offline development and tests.
 - `LocalNotesAdapter`: create, read, append, list, and search markdown notes.
 - `LocalFilesAdapter`: list, read, and write files inside a configured root.
-- `AdapterRegistry`: creates adapters by name: `calendar`, `gmail`, `tasks`, `notes`, `files`.
+- `AdapterRegistry`: creates adapters by name: `calendar`, `gmail`, `tasks`, `local_tasks`, `notes`, `files`.
 - `TaskActionRunner`: executes list, create, complete, and delete task intents.
 
 ## Example
@@ -116,7 +118,7 @@ extraction.
 
 ```text
 MyVibe/
-|-- adapters/              # Calendar, Gmail, Tasks, notes, and files
+|-- adapters/              # Calendar, Gmail, Tasks, notes, files, and local task storage
 |-- intent_router.py       # Rule-based intent classification
 |-- calendar_actions.py    # Calendar action runner
 |-- task_actions.py        # Task action runner

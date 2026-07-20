@@ -9,6 +9,7 @@ from .google_calendar import GoogleCalendarAdapter
 from .google_tasks import GoogleTasksAdapter
 from .local_files import LocalFilesAdapter
 from .local_notes import LocalNotesAdapter
+from .local_tasks import LocalTasksAdapter
 
 
 AdapterFactory = Callable[[], Any]
@@ -39,6 +40,7 @@ def default_registry() -> AdapterRegistry:
     registry.register("calendar", GoogleCalendarAdapter)
     registry.register("gmail", GmailAdapter)
     registry.register("tasks", GoogleTasksAdapter)
+    registry.register("local_tasks", LocalTasksAdapter)
     registry.register("notes", LocalNotesAdapter)
     registry.register("files", LocalFilesAdapter)
     return registry

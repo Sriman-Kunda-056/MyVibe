@@ -13,6 +13,7 @@ from adapters import (
     GoogleTasksAdapter,
     LocalFilesAdapter,
     LocalNotesAdapter,
+    LocalTasksAdapter,
     TaskItem,
     default_registry,
 )
@@ -266,12 +267,17 @@ class RegistryTest(unittest.TestCase):
     def test_default_registry_exposes_all_adapters(self):
         names = default_registry().names()
 
-        self.assertEqual(["calendar", "files", "gmail", "notes", "tasks"], names)
+        self.assertEqual(["calendar", "files", "gmail", "local_tasks", "notes", "tasks"], names)
 
     def test_registry_can_create_task_adapter_without_google_imports(self):
         adapter = default_registry().create("tasks")
 
         self.assertIsInstance(adapter, GoogleTasksAdapter)
+
+    def test_registry_can_create_local_task_adapter(self):
+        adapter = default_registry().create("local_tasks")
+
+        self.assertIsInstance(adapter, LocalTasksAdapter)
 
 
 if __name__ == "__main__":
