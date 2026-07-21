@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List
 from .gmail import GmailAdapter
 from .google_calendar import GoogleCalendarAdapter
 from .google_tasks import GoogleTasksAdapter
+from .local_calendar import LocalCalendarAdapter
 from .local_files import LocalFilesAdapter
 from .local_notes import LocalNotesAdapter
 from .local_tasks import LocalTasksAdapter
@@ -38,6 +39,7 @@ class AdapterRegistry:
 def default_registry() -> AdapterRegistry:
     registry = AdapterRegistry()
     registry.register("calendar", GoogleCalendarAdapter)
+    registry.register("local_calendar", LocalCalendarAdapter)
     registry.register("gmail", GmailAdapter)
     registry.register("tasks", GoogleTasksAdapter)
     registry.register("local_tasks", LocalTasksAdapter)

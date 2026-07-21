@@ -7,12 +7,11 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from Auth import GMAIL_SCOPES
-from adapters.local_calendar import LocalCalendarAdapter
-from adapters.local_tasks import LocalTasksAdapter
 from adapters import (
     GmailAdapter,
     GmailMessage,
     GoogleTasksAdapter,
+    LocalCalendarAdapter,
     LocalFilesAdapter,
     LocalNotesAdapter,
     LocalTasksAdapter,
@@ -311,12 +310,17 @@ class RegistryTest(unittest.TestCase):
     def test_default_registry_exposes_all_adapters(self):
         names = default_registry().names()
 
-        self.assertEqual(["calendar", "files", "gmail", "local_tasks", "notes", "tasks"], names)
+        self.assertEqual(["calendar", "files", "gmail", "local_calendar", "local_tasks", "notes", "tasks"], names)
 
     def test_registry_can_create_task_adapter_without_google_imports(self):
         adapter = default_registry().create("tasks")
 
         self.assertIsInstance(adapter, GoogleTasksAdapter)
+
+    def test_registry_can_create_local_calendar_adapter(self):
+        adapter = default_registry().create("local_calendar")
+
+        self.assertIsInstance(adapter, LocalCalendarAdapter)
 
     def test_registry_can_create_local_task_adapter(self):
         adapter = default_registry().create("local_tasks")
