@@ -2,10 +2,12 @@
 
 import unittest
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock
 
 from Auth import GMAIL_SCOPES
+from adapters.local_calendar import LocalCalendarAdapter
 from adapters.local_tasks import LocalTasksAdapter
 from adapters import (
     GmailAdapter,
@@ -191,6 +193,48 @@ class LocalAdapterTest(unittest.TestCase):
         preserved = adapter.read_note(note.note_id)
         self.assertIn("Original content", preserved.content)
         self.assertNotIn("Replacement content", preserved.content)
+
+    def test_local_calendar_create_list_delete_flow(self):
+        adapter = LocalCalendarAdapter(self.root / "calendar")
+
+        adapter.create_event(
+            "Yesterday sync",
+            "2026-07-20T09:00:00Z",
+            "2026-07-20T09:30:00Z",
+        )
+        focus = adapter.create_event(
+            "Focus block",
+            "2026-07-21T09:00:00Z",
+            "2026-07-21T10:00:00Z",
+            description="Adapter work",
+        )
+        reloaded = LocalCalendarAdapter(self.root / "calendar")
+
+        upcoming = reloaded.list_upcoming_events(
+            time_min=datetime(2026, 7, 21, tzinfo=timezone.utc),
+        )
+
+        self.assertTrue(focus.event_id.startswith("local-"))
+        self.assertEqual([focus.event_id], [event.event_id for event in upcoming])
+        self.assertEqual("Focus block", upcoming[0].summary)
+        self.assertEqual("local://calendar/" + focus.event_id, upcoming[0].link)
+
+        reloaded.delete_event(focus.event_id)
+
+        self.assertEqual(
+            [],
+            reloaded.list_upcoming_events(
+                time_min=datetime(2026, 7, 21, tzinfo=timezone.utc),
+            ),
+        )
+
+    def test_local_calendar_rejects_blank_summaries(self):
+        adapter = LocalCalendarAdapter(self.root / "calendar")
+
+        with self.assertRaisesRegex(ValueError, "summary"):
+            adapter.create_event("   ", "2026-07-21T09:00:00Z", "2026-07-21T10:00:00Z")
+
+        self.assertFalse((self.root / "calendar").exists())
 
     def test_local_tasks_create_complete_delete_flow(self):
         adapter = LocalTasksAdapter(self.root / "tasks")
