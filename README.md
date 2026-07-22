@@ -19,7 +19,7 @@ it later.
 | Calendar and task intents | **7** |
 | Google API integrations | **3** |
 | Unit-test modules | **4** |
-| Python source files | **17** |
+| Python source files | **18** |
 
 ## Preview
 

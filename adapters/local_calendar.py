@@ -2,21 +2,19 @@
 
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import date, datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from .google_calendar import CalendarEvent
+from .local_json_store import LocalJsonStore
 
 
 class LocalCalendarAdapter:
     """Stores calendar events in a local JSON file for offline development."""
 
     def __init__(self, root_dir: str = "calendar") -> None:
-        self.root = Path(root_dir)
-        self.store_path = self.root / "events.json"
+        self.store = LocalJsonStore(root_dir, "events.json", {"events": []})
 
     def list_upcoming_events(
         self,
@@ -69,16 +67,10 @@ class LocalCalendarAdapter:
         raise KeyError(f"Unknown calendar event: {event_id}")
 
     def _load(self) -> Dict[str, Any]:
-        if not self.store_path.exists():
-            return {"events": []}
-        return json.loads(self.store_path.read_text(encoding="utf-8"))
+        return self.store.load()
 
     def _save(self, data: Dict[str, Any]) -> None:
-        self.root.mkdir(parents=True, exist_ok=True)
-        self.store_path.write_text(
-            json.dumps(data, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        self.store.save(data)
 
 
 def _event_time(
