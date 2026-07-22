@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import date, datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from .google_tasks import TaskItem, TaskList
+from .local_json_store import LocalJsonStore
 
 
 class LocalTasksAdapter:
@@ -20,10 +19,17 @@ class LocalTasksAdapter:
         tasklist_id: str = "@default",
         tasklist_title: str = "Local Tasks",
     ) -> None:
-        self.root = Path(root_dir)
         self.tasklist_id = tasklist_id
-        self.tasklist_title = tasklist_title
-        self.store_path = self.root / "tasks.json"
+        self.store = LocalJsonStore(
+            root_dir,
+            "tasks.json",
+            {
+                "tasklists": [
+                    {"id": tasklist_id, "title": tasklist_title},
+                ],
+                "tasks": [],
+            },
+        )
 
     def list_tasklists(self) -> List[TaskList]:
         data = self._load()
@@ -103,21 +109,10 @@ class LocalTasksAdapter:
         raise KeyError(f"Unknown task: {task_id}")
 
     def _load(self) -> Dict[str, Any]:
-        if not self.store_path.exists():
-            return {
-                "tasklists": [
-                    {"id": self.tasklist_id, "title": self.tasklist_title},
-                ],
-                "tasks": [],
-            }
-        return json.loads(self.store_path.read_text(encoding="utf-8"))
+        return self.store.load()
 
     def _save(self, data: Dict[str, Any]) -> None:
-        self.root.mkdir(parents=True, exist_ok=True)
-        self.store_path.write_text(
-            json.dumps(data, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        self.store.save(data)
 
 
 def _as_task_due(value: Union[datetime, date, str]) -> str:
