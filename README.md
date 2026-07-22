@@ -112,7 +112,7 @@ Use a dedicated test account while developing and never commit OAuth tokens.
 python -m unittest discover -s tests
 ```
 
-The four tracked test modules cover the current router and adapter foundations.
+The four tracked test modules keep coverage focused on the current router and adapter foundations.
 They do not validate live Google accounts or arbitrary natural-language slot
 extraction.
 

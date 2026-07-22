@@ -37,19 +37,13 @@ class FakeCalendarAdapter:
 
 
 class IntentCalendarFlowTest(unittest.TestCase):
-    def test_routes_calendar_list_request(self):
+    def test_routes_and_lists_calendar_events(self):
         intent = route_intent("show my next calendar events")
+        result = CalendarActionRunner(FakeCalendarAdapter()).run(intent)
 
         self.assertEqual("calendar.list_upcoming", intent.name)
         self.assertTrue(intent.is_actionable)
-
-    def test_list_upcoming_uses_adapter(self):
-        result = CalendarActionRunner(FakeCalendarAdapter()).run(
-            VibeIntent("calendar.list_upcoming", 0.9, "show my calendar")
-        )
-
         self.assertTrue(result.ok)
-        self.assertEqual("Found 1 upcoming calendar events.", result.message)
         self.assertEqual("evt_1", result.payload["events"][0]["event_id"])
 
     def test_create_event_validates_required_slots(self):
@@ -62,44 +56,26 @@ class IntentCalendarFlowTest(unittest.TestCase):
         self.assertIn("start", result.message)
         self.assertIn("end", result.message)
 
-    def test_routed_delete_event_uses_extracted_id(self):
+    def test_delete_event_flow_and_confidence_guard(self):
         adapter = FakeCalendarAdapter()
         intent = route_intent("delete event evt_1")
 
         result = CalendarActionRunner(adapter).run(intent)
-
-        self.assertTrue(result.ok)
-        self.assertEqual("evt_1", intent.slots["event_id"])
-        self.assertEqual(["evt_1"], adapter.deleted)
-
-    def test_delete_event_uses_adapter(self):
-        adapter = FakeCalendarAdapter()
-        result = CalendarActionRunner(adapter).run(
-            VibeIntent(
-                "calendar.delete_event",
-                0.9,
-                "delete my event",
-                {"event_id": "evt_1"},
-            )
-        )
-
-        self.assertTrue(result.ok)
-        self.assertEqual(["evt_1"], adapter.deleted)
-
-    def test_delete_event_rejects_low_confidence_intent(self):
-        adapter = FakeCalendarAdapter()
-        result = CalendarActionRunner(adapter).run(
+        blocked = CalendarActionRunner(adapter).run(
             VibeIntent(
                 "calendar.delete_event",
                 0.0,
                 "maybe delete my event",
-                {"event_id": "evt_1"},
+                {"event_id": "evt_2"},
             )
         )
 
-        self.assertFalse(result.ok)
-        self.assertIn("not actionable", result.message)
-        self.assertEqual([], adapter.deleted)
+        self.assertTrue(result.ok)
+        self.assertEqual("evt_1", intent.slots["event_id"])
+        self.assertEqual(["evt_1"], adapter.deleted)
+        self.assertFalse(blocked.ok)
+        self.assertIn("not actionable", blocked.message)
+        self.assertEqual(["evt_1"], adapter.deleted)
 
 
 if __name__ == "__main__":

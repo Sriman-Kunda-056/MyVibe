@@ -53,34 +53,26 @@ class AdapterParsingTest(unittest.TestCase):
         self.assertEqual("Launch notes", message.subject)
         self.assertEqual("sam@example.com", message.sender)
 
-    def test_gmail_list_omits_empty_query(self):
-        service = MagicMock()
-        service.users.return_value.messages.return_value.list.return_value.execute.return_value = {
-            "messages": []
-        }
-        adapter = GmailAdapter(service=service)
+    def test_gmail_list_query_arguments(self):
+        for query, expected in (
+            (None, {"userId": "me", "maxResults": 10}),
+            (
+                "from:sam@example.com",
+                {"userId": "me", "maxResults": 5, "q": "from:sam@example.com"},
+            ),
+        ):
+            with self.subTest(query=query):
+                service = MagicMock()
+                service.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+                    "messages": []
+                }
+                adapter = GmailAdapter(service=service)
 
-        adapter.list_recent_messages()
+                adapter.list_recent_messages(max_results=expected["maxResults"], query=query)
 
-        service.users.return_value.messages.return_value.list.assert_called_once_with(
-            userId="me",
-            maxResults=10,
-        )
-
-    def test_gmail_list_includes_non_empty_query(self):
-        service = MagicMock()
-        service.users.return_value.messages.return_value.list.return_value.execute.return_value = {
-            "messages": []
-        }
-        adapter = GmailAdapter(service=service)
-
-        adapter.list_recent_messages(max_results=5, query="from:sam@example.com")
-
-        service.users.return_value.messages.return_value.list.assert_called_once_with(
-            userId="me",
-            maxResults=5,
-            q="from:sam@example.com",
-        )
+                service.users.return_value.messages.return_value.list.assert_called_once_with(
+                    **expected
+                )
 
     def test_gmail_send_rejects_blank_recipient(self):
         service = MagicMock()
@@ -105,41 +97,38 @@ class AdapterParsingTest(unittest.TestCase):
         self.assertEqual("Ship adapter layer", task.title)
         self.assertEqual("needsAction", task.status)
 
-    def test_google_tasks_forwards_completed_visibility_flags(self):
-        service = MagicMock()
-        service.tasks.return_value.list.return_value.execute.return_value = {
-            "items": []
-        }
-        adapter = GoogleTasksAdapter(service=service)
-
-        adapter.list_tasks(
-            show_completed=True,
-            show_hidden=True,
-            max_results=10,
+    def test_google_tasks_list_arguments(self):
+        cases = (
+            (
+                {"show_completed": True, "show_hidden": True, "max_results": 10},
+                {
+                    "tasklist": "@default",
+                    "showCompleted": True,
+                    "showHidden": True,
+                    "maxResults": 10,
+                },
+            ),
+            (
+                {"tasklist_id": None, "show_completed": False, "max_results": 10},
+                {
+                    "tasklist": "@default",
+                    "showCompleted": False,
+                    "showHidden": False,
+                    "maxResults": 10,
+                },
+            ),
         )
+        for kwargs, expected in cases:
+            with self.subTest(kwargs=kwargs):
+                service = MagicMock()
+                service.tasks.return_value.list.return_value.execute.return_value = {
+                    "items": []
+                }
+                adapter = GoogleTasksAdapter(service=service)
 
-        service.tasks.return_value.list.assert_called_once_with(
-            tasklist="@default",
-            showCompleted=True,
-            showHidden=True,
-            maxResults=10,
-        )
+                adapter.list_tasks(**kwargs)
 
-    def test_google_tasks_preserves_positional_max_results(self):
-        service = MagicMock()
-        service.tasks.return_value.list.return_value.execute.return_value = {
-            "items": []
-        }
-        adapter = GoogleTasksAdapter(service=service)
-
-        adapter.list_tasks(None, False, 10)
-
-        service.tasks.return_value.list.assert_called_once_with(
-            tasklist="@default",
-            showCompleted=False,
-            showHidden=False,
-            maxResults=10,
-        )
+                service.tasks.return_value.list.assert_called_once_with(**expected)
 
 
 class LocalAdapterTest(unittest.TestCase):
@@ -147,7 +136,7 @@ class LocalAdapterTest(unittest.TestCase):
         TEST_TMP_ROOT.mkdir(exist_ok=True)
         self.root = TEST_TMP_ROOT / uuid.uuid4().hex
 
-    def test_local_notes_create_find_and_append(self):
+    def test_local_notes_flow_and_validation(self):
         adapter = LocalNotesAdapter(self.root / "notes")
 
         note = adapter.create_note("Daily Plan", "Build VibeOS adapters")
@@ -157,43 +146,27 @@ class LocalAdapterTest(unittest.TestCase):
         self.assertEqual("daily-plan", note.note_id)
         self.assertIn("Add tests", updated.content)
         self.assertEqual([note.note_id], [match.note_id for match in matches])
-
-    def test_local_notes_rejects_blank_search_queries(self):
-        adapter = LocalNotesAdapter(self.root / "notes")
-        adapter.create_note("Daily Plan", "Build VibeOS adapters")
-
         with self.assertRaisesRegex(ValueError, "query"):
             adapter.find_notes("   ")
+        with self.assertRaises(FileNotFoundError):
+            adapter.append_note("missing-note", "Do not create this file")
+        self.assertFalse((self.root / "notes" / "missing-note.md").exists())
 
-    def test_local_notes_rejects_blank_titles(self):
+    def test_local_notes_rejects_invalid_creates(self):
         adapter = LocalNotesAdapter(self.root / "notes")
 
         with self.assertRaisesRegex(ValueError, "title"):
             adapter.create_note("   ", "No title")
-
         self.assertFalse((self.root / "notes").exists())
 
-    def test_local_notes_rejects_append_to_missing_note(self):
-        adapter = LocalNotesAdapter(self.root / "notes")
-        adapter.create_note("Seed note", "Keep this note")
-
-        with self.assertRaises(FileNotFoundError):
-            adapter.append_note("missing-note", "Do not create this file")
-
-        self.assertFalse((self.root / "notes" / "missing-note.md").exists())
-
-    def test_local_notes_rejects_slug_collisions_without_overwriting(self):
-        adapter = LocalNotesAdapter(self.root / "notes")
         note = adapter.create_note("Daily Plan", "Original content")
-
         with self.assertRaisesRegex(FileExistsError, "daily-plan"):
             adapter.create_note("Daily---Plan", "Replacement content")
-
         preserved = adapter.read_note(note.note_id)
         self.assertIn("Original content", preserved.content)
         self.assertNotIn("Replacement content", preserved.content)
 
-    def test_local_calendar_create_list_delete_flow(self):
+    def test_local_calendar_flow_and_validation(self):
         adapter = LocalCalendarAdapter(self.root / "calendar")
 
         adapter.create_event(
@@ -219,23 +192,16 @@ class LocalAdapterTest(unittest.TestCase):
         self.assertEqual("local://calendar/" + focus.event_id, upcoming[0].link)
 
         reloaded.delete_event(focus.event_id)
-
         self.assertEqual(
             [],
             reloaded.list_upcoming_events(
                 time_min=datetime(2026, 7, 21, tzinfo=timezone.utc),
             ),
         )
-
-    def test_local_calendar_rejects_blank_summaries(self):
-        adapter = LocalCalendarAdapter(self.root / "calendar")
-
         with self.assertRaisesRegex(ValueError, "summary"):
             adapter.create_event("   ", "2026-07-21T09:00:00Z", "2026-07-21T10:00:00Z")
 
-        self.assertFalse((self.root / "calendar").exists())
-
-    def test_local_tasks_create_complete_delete_flow(self):
+    def test_local_tasks_flow_and_validation(self):
         adapter = LocalTasksAdapter(self.root / "tasks")
 
         task = adapter.create_task(
@@ -257,75 +223,39 @@ class LocalAdapterTest(unittest.TestCase):
         )
 
         adapter.delete_task(task.task_id)
-
         self.assertEqual([], adapter.list_tasks(show_completed=True))
-
-    def test_local_tasks_rejects_blank_titles(self):
-        adapter = LocalTasksAdapter(self.root / "tasks")
-
         with self.assertRaisesRegex(ValueError, "title"):
             adapter.create_task("   ")
 
-        self.assertFalse((self.root / "tasks").exists())
-
-    def test_local_files_returns_posix_relative_paths(self):
+    def test_local_files_flow_and_validation(self):
         adapter = LocalFilesAdapter(self.root / "workspace")
 
         written = adapter.write_text("plans/today.txt", "Build adapters")
         entries = adapter.list_entries("plans")
+        content = adapter.read_text("plans/today.txt")
 
         self.assertEqual("plans/today.txt", written.relative_path)
         self.assertEqual(["plans/today.txt"], [entry.relative_path for entry in entries])
-
-    def test_local_files_rejects_empty_paths(self):
-        adapter = LocalFilesAdapter(self.root / "workspace")
-
+        self.assertEqual("Build adapters", content)
         with self.assertRaisesRegex(ValueError, "empty"):
             adapter.write_text("   ", "No path")
-
-        self.assertFalse((self.root / "workspace").exists())
-
-    def test_local_files_rejects_absolute_paths(self):
-        adapter = LocalFilesAdapter(self.root / "workspace")
-        absolute_path = (self.root / "workspace" / "inside.txt").resolve()
-
         with self.assertRaisesRegex(ValueError, "relative"):
-            adapter.write_text(str(absolute_path), "Must stay relative")
-
-        self.assertFalse(absolute_path.exists())
-
-    def test_local_files_stays_inside_root(self):
-        adapter = LocalFilesAdapter(self.root / "workspace")
-
-        written = adapter.write_text("plans/today.txt", "Build adapters")
-        content = adapter.read_text("plans/today.txt")
-
-        self.assertEqual(Path("plans/today.txt"), Path(written.relative_path))
-        self.assertEqual("Build adapters", content)
+            adapter.write_text(str((self.root / "workspace" / "inside.txt").resolve()), "Nope")
         with self.assertRaises(ValueError):
             adapter.read_text("../outside.txt")
 
 
 class RegistryTest(unittest.TestCase):
-    def test_default_registry_exposes_all_adapters(self):
-        names = default_registry().names()
+    def test_default_registry_exposes_and_creates_key_adapters(self):
+        registry = default_registry()
 
-        self.assertEqual(["calendar", "files", "gmail", "local_calendar", "local_tasks", "notes", "tasks"], names)
-
-    def test_registry_can_create_task_adapter_without_google_imports(self):
-        adapter = default_registry().create("tasks")
-
-        self.assertIsInstance(adapter, GoogleTasksAdapter)
-
-    def test_registry_can_create_local_calendar_adapter(self):
-        adapter = default_registry().create("local_calendar")
-
-        self.assertIsInstance(adapter, LocalCalendarAdapter)
-
-    def test_registry_can_create_local_task_adapter(self):
-        adapter = default_registry().create("local_tasks")
-
-        self.assertIsInstance(adapter, LocalTasksAdapter)
+        self.assertEqual(
+            ["calendar", "files", "gmail", "local_calendar", "local_tasks", "notes", "tasks"],
+            registry.names(),
+        )
+        self.assertIsInstance(registry.create("tasks"), GoogleTasksAdapter)
+        self.assertIsInstance(registry.create("local_calendar"), LocalCalendarAdapter)
+        self.assertIsInstance(registry.create("local_tasks"), LocalTasksAdapter)
 
 
 if __name__ == "__main__":

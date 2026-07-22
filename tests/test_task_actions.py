@@ -53,65 +53,52 @@ class FakeTasksAdapter:
 
 
 class TaskActionFlowTest(unittest.TestCase):
-    def test_list_completed_tasks_uses_routed_slots(self):
+    def test_list_tasks_filters_by_status(self):
+        cases = (
+            ("show completed tasks", True, True, ["task_2"]),
+            ("show pending tasks", False, False, ["task_1"]),
+        )
+        for text, show_completed, show_hidden, task_ids in cases:
+            with self.subTest(text=text):
+                adapter = FakeTasksAdapter()
+                intent = route_intent(text)
+
+                result = TaskActionRunner(adapter).run(intent)
+
+                self.assertTrue(result.ok)
+                self.assertEqual(
+                    [
+                        {
+                            "tasklist_id": None,
+                            "show_completed": show_completed,
+                            "show_hidden": show_hidden,
+                        }
+                    ],
+                    adapter.list_calls,
+                )
+                self.assertEqual(task_ids, [task["task_id"] for task in result.payload["tasks"]])
+
+    def test_task_mutations_validate_required_slots(self):
+        cases = (
+            ("tasks.create", "add a task", "title", "created"),
+            ("tasks.complete", "complete the task", "task_id", "completed"),
+            ("tasks.delete", "delete the task", "task_id", "deleted"),
+        )
+        for name, source_text, missing_field, collection in cases:
+            with self.subTest(name=name):
+                adapter = FakeTasksAdapter()
+
+                result = TaskActionRunner(adapter).run(VibeIntent(name, 0.9, source_text))
+
+                self.assertFalse(result.ok)
+                self.assertIn(missing_field, result.message)
+                self.assertEqual([], getattr(adapter, collection))
+
+    def test_task_mutations_use_adapter(self):
         adapter = FakeTasksAdapter()
-        intent = route_intent("show completed tasks")
+        runner = TaskActionRunner(adapter)
 
-        result = TaskActionRunner(adapter).run(intent)
-
-        self.assertTrue(result.ok)
-        self.assertEqual(
-            [
-                {
-                    "tasklist_id": None,
-                    "show_completed": True,
-                    "show_hidden": True,
-                }
-            ],
-            adapter.list_calls,
-        )
-        self.assertEqual(
-            ["task_2"],
-            [task["task_id"] for task in result.payload["tasks"]],
-        )
-
-    def test_list_pending_tasks_excludes_completed_results(self):
-        adapter = FakeTasksAdapter()
-        intent = route_intent("show pending tasks")
-
-        result = TaskActionRunner(adapter).run(intent)
-
-        self.assertTrue(result.ok)
-        self.assertEqual(
-            [
-                {
-                    "tasklist_id": None,
-                    "show_completed": False,
-                    "show_hidden": False,
-                }
-            ],
-            adapter.list_calls,
-        )
-        self.assertEqual(
-            ["task_1"],
-            [task["task_id"] for task in result.payload["tasks"]],
-        )
-
-    def test_create_task_validates_title_before_adapter_call(self):
-        adapter = FakeTasksAdapter()
-
-        result = TaskActionRunner(adapter).run(
-            VibeIntent("tasks.create", 0.9, "add a task")
-        )
-
-        self.assertFalse(result.ok)
-        self.assertIn("title", result.message)
-        self.assertEqual([], adapter.created)
-
-    def test_create_task_uses_adapter(self):
-        adapter = FakeTasksAdapter()
-
-        result = TaskActionRunner(adapter).run(
+        created = runner.run(
             VibeIntent(
                 "tasks.create",
                 0.9,
@@ -124,27 +111,7 @@ class TaskActionFlowTest(unittest.TestCase):
                 },
             )
         )
-
-        self.assertTrue(result.ok)
-        self.assertEqual("Review adapter design", adapter.created[0]["title"])
-        self.assertEqual("work", adapter.created[0]["tasklist_id"])
-        self.assertEqual("task_created", result.payload["task"]["task_id"])
-
-    def test_complete_task_validates_id_before_adapter_call(self):
-        adapter = FakeTasksAdapter()
-
-        result = TaskActionRunner(adapter).run(
-            VibeIntent("tasks.complete", 0.9, "complete the task")
-        )
-
-        self.assertFalse(result.ok)
-        self.assertIn("task_id", result.message)
-        self.assertEqual([], adapter.completed)
-
-    def test_complete_task_uses_adapter(self):
-        adapter = FakeTasksAdapter()
-
-        result = TaskActionRunner(adapter).run(
+        completed = runner.run(
             VibeIntent(
                 "tasks.complete",
                 0.9,
@@ -152,21 +119,20 @@ class TaskActionFlowTest(unittest.TestCase):
                 {"task_id": "task_1", "tasklist_id": "work"},
             )
         )
-
-        self.assertTrue(result.ok)
-        self.assertEqual([("task_1", "work")], adapter.completed)
-        self.assertEqual("completed", result.payload["task"]["status"])
-
-    def test_delete_task_validates_id_before_adapter_call(self):
-        adapter = FakeTasksAdapter()
-
-        result = TaskActionRunner(adapter).run(
-            VibeIntent("tasks.delete", 0.9, "delete the task")
+        deleted = runner.run(
+            VibeIntent("tasks.delete", 0.9, "delete the task", {"task_id": "task_1"})
         )
 
-        self.assertFalse(result.ok)
-        self.assertIn("task_id", result.message)
-        self.assertEqual([], adapter.deleted)
+        self.assertTrue(created.ok)
+        self.assertEqual("Review adapter design", adapter.created[0]["title"])
+        self.assertEqual("work", adapter.created[0]["tasklist_id"])
+        self.assertEqual("task_created", created.payload["task"]["task_id"])
+        self.assertTrue(completed.ok)
+        self.assertEqual([("task_1", "work")], adapter.completed)
+        self.assertEqual("completed", completed.payload["task"]["status"])
+        self.assertTrue(deleted.ok)
+        self.assertEqual([("task_1", None)], adapter.deleted)
+        self.assertEqual("task_1", deleted.payload["task_id"])
 
     def test_delete_task_rejects_low_confidence_intent(self):
         adapter = FakeTasksAdapter()
@@ -183,22 +149,6 @@ class TaskActionFlowTest(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("not actionable", result.message)
         self.assertEqual([], adapter.deleted)
-
-    def test_delete_task_uses_adapter(self):
-        adapter = FakeTasksAdapter()
-
-        result = TaskActionRunner(adapter).run(
-            VibeIntent(
-                "tasks.delete",
-                0.9,
-                "delete the task",
-                {"task_id": "task_1"},
-            )
-        )
-
-        self.assertTrue(result.ok)
-        self.assertEqual([("task_1", None)], adapter.deleted)
-        self.assertEqual("task_1", result.payload["task_id"])
 
 
 if __name__ == "__main__":
