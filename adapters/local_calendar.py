@@ -24,7 +24,7 @@ class LocalCalendarAdapter:
         cutoff = _as_datetime(time_min or datetime.now(timezone.utc))
         events = [
             event
-            for event in self._load()["events"]
+            for event in self.store.load()["events"]
             if _event_start_datetime(event) >= cutoff
         ]
         events.sort(key=_event_start_datetime)
@@ -42,7 +42,7 @@ class LocalCalendarAdapter:
         if not summary:
             raise ValueError("Calendar event summary must not be empty.")
 
-        data = self._load()
+        data = self.store.load()
         event = {
             "id": f"local-{uuid.uuid4().hex}",
             "summary": summary,
@@ -54,23 +54,17 @@ class LocalCalendarAdapter:
         event["htmlLink"] = f"local://calendar/{event['id']}"
 
         data["events"].append(event)
-        self._save(data)
+        self.store.save(data)
         return CalendarEvent.from_google_event(event)
 
     def delete_event(self, event_id: str) -> None:
-        data = self._load()
+        data = self.store.load()
         for event in data["events"]:
             if event.get("id") == event_id:
                 data["events"].remove(event)
-                self._save(data)
+                self.store.save(data)
                 return
         raise KeyError(f"Unknown calendar event: {event_id}")
-
-    def _load(self) -> Dict[str, Any]:
-        return self.store.load()
-
-    def _save(self, data: Dict[str, Any]) -> None:
-        self.store.save(data)
 
 
 def _event_time(

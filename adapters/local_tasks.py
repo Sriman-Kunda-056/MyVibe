@@ -32,7 +32,7 @@ class LocalTasksAdapter:
         )
 
     def list_tasklists(self) -> List[TaskList]:
-        data = self._load()
+        data = self.store.load()
         return [TaskList.from_google_tasklist(tasklist) for tasklist in data["tasklists"]]
 
     def list_tasks(
@@ -45,7 +45,7 @@ class LocalTasksAdapter:
         active_tasklist_id = tasklist_id or self.tasklist_id
         tasks = [
             task
-            for task in self._load()["tasks"]
+            for task in self.store.load()["tasks"]
             if task.get("tasklist_id") == active_tasklist_id
         ]
         if not show_completed:
@@ -65,7 +65,7 @@ class LocalTasksAdapter:
         if not title:
             raise ValueError("Task title must not be empty.")
 
-        data = self._load()
+        data = self.store.load()
         task = {
             "id": f"local-{uuid.uuid4().hex}",
             "tasklist_id": tasklist_id or self.tasklist_id,
@@ -78,7 +78,7 @@ class LocalTasksAdapter:
             task["due"] = _as_task_due(due)
 
         data["tasks"].append(task)
-        self._save(data)
+        self.store.save(data)
         return TaskItem.from_google_task(task)
 
     def complete_task(
@@ -88,13 +88,13 @@ class LocalTasksAdapter:
     ) -> TaskItem:
         data, task = self._find_task(task_id, tasklist_id)
         task["status"] = "completed"
-        self._save(data)
+        self.store.save(data)
         return TaskItem.from_google_task(task)
 
     def delete_task(self, task_id: str, tasklist_id: Optional[str] = None) -> None:
         data, task = self._find_task(task_id, tasklist_id)
         data["tasks"].remove(task)
-        self._save(data)
+        self.store.save(data)
 
     def _find_task(
         self,
@@ -102,17 +102,11 @@ class LocalTasksAdapter:
         tasklist_id: Optional[str] = None,
     ) -> tuple[Dict[str, Any], Dict[str, Any]]:
         active_tasklist_id = tasklist_id or self.tasklist_id
-        data = self._load()
+        data = self.store.load()
         for task in data["tasks"]:
             if task.get("id") == task_id and task.get("tasklist_id") == active_tasklist_id:
                 return data, task
         raise KeyError(f"Unknown task: {task_id}")
-
-    def _load(self) -> Dict[str, Any]:
-        return self.store.load()
-
-    def _save(self, data: Dict[str, Any]) -> None:
-        self.store.save(data)
 
 
 def _as_task_due(value: Union[datetime, date, str]) -> str:
