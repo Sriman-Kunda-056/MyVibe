@@ -38,11 +38,14 @@ class AdapterRegistry:
 
 def default_registry() -> AdapterRegistry:
     registry = AdapterRegistry()
-    registry.register("calendar", GoogleCalendarAdapter)
-    registry.register("local_calendar", LocalCalendarAdapter)
-    registry.register("gmail", GmailAdapter)
-    registry.register("tasks", GoogleTasksAdapter)
-    registry.register("local_tasks", LocalTasksAdapter)
-    registry.register("notes", LocalNotesAdapter)
-    registry.register("files", LocalFilesAdapter)
+    for name, factory in (
+        ("calendar", GoogleCalendarAdapter),
+        ("files", LocalFilesAdapter),
+        ("gmail", GmailAdapter),
+        ("local_calendar", LocalCalendarAdapter),
+        ("local_tasks", LocalTasksAdapter),
+        ("notes", LocalNotesAdapter),
+        ("tasks", GoogleTasksAdapter),
+    ):
+        registry.register(name, factory)
     return registry
